@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Work OS · Calendario y asistente</title>
+<style>
+:root{--side:#dcdac6;--main:#efeee4;--card:#f8f7f0;--ink:#111;--mute:#8d8b7c;--line:#cfcdb9;--red:#e8261b;--yel:#ffe600;--blk:#111;--on-blk:#fff;
+--c1:#0b6b4a;--c2:#8a4b08;--c3:#1b4f9c;--c4:#7a2530;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--side:#2a2a24;--main:#1d1d19;--card:#292923;--ink:#f1f0e6;--mute:#8f8d7e;--line:#3d3d34;--blk:#f1f0e6;--on-blk:#111;--c1:#4fc79a;--c2:#e3a050;--c3:#7aaaf0;--c4:#e48a96;color-scheme:dark}}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font-family:"Helvetica Neue",Inter,Arial,sans-serif;background:var(--main);color:var(--ink);overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.app{display:grid;grid-template-columns:300px 1fr 340px;height:100%}
+.panel{overflow-y:auto;padding:18px}
+#side{background:var(--side)}#ai{background:var(--side)}#main{background:var(--main);padding:18px 24px}
+h1,h2{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mut{color:var(--mute)}
+.btn{background:var(--blk);color:var(--on-blk);border-radius:99px;padding:8px 16px;font-weight:600;font-size:13px}
+.ico{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:16px;background:transparent}
+.ico:hover{background:var(--line)}
+/* mini calendar */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;margin:12px 0 4px}
+.cal b{font-size:11px;color:var(--mute);font-weight:500;padding:4px 0}
+.d{aspect-ratio:1;border-radius:6px;font-weight:600;font-size:14px;position:relative;display:grid;place-items:center}
+.d.o{color:var(--mute);font-weight:400}
+.d.t{background:var(--red);color:#fff}
+.d.s:not(.t){box-shadow:inset 0 0 0 2px var(--blk)}
+.d i{position:absolute;bottom:3px;width:4px;height:4px;border-radius:50%;background:var(--c3)}
+h2.sec{margin:20px 0 8px}
+.item{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;font-weight:600;border-top:1px solid var(--line)}
+.item span.tm{margin-left:auto;color:var(--mute);font-weight:400;font-size:12px}
+.chk{width:18px;height:18px;border:1.5px dashed var(--mute);border-radius:5px;flex:none;display:grid;place-items:center;font-size:12px;line-height:1}
+.chk.on{background:var(--blk);border:1.5px solid var(--blk);color:var(--on-blk)}
+.done .tt{text-decoration:line-through;color:var(--mute)}
+.late{color:var(--red)}
+.add{display:flex;gap:6px;margin-top:8px}
+.add input{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px}
+/* agenda */
+.big{display:flex;gap:20px;padding:22px 0;border-top:2px solid var(--blk)}
+.big .n{font-size:clamp(64px,9vw,112px);font-weight:800;line-height:.85;letter-spacing:-.05em;flex:none;min-width:1.2em}
+.big sup{font-size:15px;font-weight:700;color:var(--red);vertical-align:top;margin-left:4px;letter-spacing:0}
+.evs{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.ev{background:var(--card);border-radius:12px;padding:12px 14px;display:flex;gap:14px;border:1px solid var(--line)}
+.ev .h{font-weight:700;font-size:15px;white-space:nowrap}
+.ev .h small{display:block;color:var(--mute);font-weight:400;font-size:12px}
+.ev .b{border-left:2px solid var(--tc);padding-left:12px;min-width:0;flex:1}
+.ev .b small{font-size:11px;font-weight:700;color:var(--tc)}
+.ev .b p{font-weight:700;font-size:14px;margin-top:2px}
+.ev button{align-self:flex-start;color:var(--mute);font-size:13px}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:18px;color:var(--mute);font-size:13px}
+.today-line{height:2px;background:var(--red);margin:2px 0}
+.footer{margin-top:24px;padding:12px 0;border-top:1px solid var(--line);text-align:center;color:var(--mute);font-size:12px}
+form.ef{display:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0;gap:8px;flex-wrap:wrap}
+form.ef.open{display:flex}
+form.ef input,form.ef select{background:var(--main);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:13px}
+form.ef input[name=title]{flex:1 1 100%}
+/* assistant */
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.card{background:var(--card);border-radius:14px;padding:12px;border:1px solid var(--line)}
+.card.y{background:var(--yel);color:#111;border-color:transparent}
+.card .v{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.card small{font-size:12px}
+.bar{height:6px;border-radius:9px;background:rgba(0,0,0,.15);margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:#111;transition:width .4s}
+.chat{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.m{padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.45;max-width:92%;white-space:pre-line}
+.m.a{background:var(--card);border:1px solid var(--line);align-self:flex-start}
+.m.u{background:var(--blk);color:var(--on-blk);align-self:flex-end}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 11px;font-size:12px;font-weight:600}
+.send{display:flex;gap:6px;margin-top:10px}
+.send input{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:10px 14px;font-size:13px}
+nav.tabs{display:none}
+@media (max-width:1000px){
+ .app{display:block;height:calc(100% - 58px)}
+ .panel{display:none;height:100%}
+ body[data-v=side] #side,body[data-v=main] #main,body[data-v=ai] #ai{display:block}
+ nav.tabs{display:flex;position:fixed;left:0;right:0;bottom:0;height:calc(58px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);background:var(--blk);z-index:5;justify-content:space-around}
+ nav.tabs button{color:var(--on-blk);opacity:.55;font-size:13px;font-weight:600;flex:1}
+ nav.tabs button.on{opacity:1}
+ .big .n{font-size:68px}.big{gap:12px}
+ .ev{flex-wrap:wrap}
+}
+</style>
+</head>
+<body data-v="main">
+<div class="app">
+ <aside class="panel" id="side">
+  <div class="row"><h1>Calendario</h1><div class="row"><button class="ico" id="prev" aria-label="Mes anterior">‹</button><button class="ico" id="next" aria-label="Mes siguiente">›</button></div></div>
+  <div class="mut" id="mlabel" style="font-size:14px;font-weight:600;margin-top:4px"></div>
+  <div class="cal" id="cal"></div>
+  <h2 class="sec row">Eventos del día</h2>
+  <div id="sev"></div>
+  <h2 class="sec">Tareas</h2>
+  <div id="tasks"></div>
+  <form class="add" id="tf"><input name="t" placeholder="Nueva tarea" required aria-label="Nueva tarea"><input name="d" type="date" style="flex:0 0 118px" aria-label="Fecha límite"><button class="btn" aria-label="Añadir tarea">+</button></form>
+ </aside>
+ <main class="panel" id="main">
+  <div class="row"><h1 style="font-size:20px" id="mt"></h1><button class="btn" id="newev">+ Nuevo evento</button></div>
+  <form class="ef" id="ef">
+   <input name="title" placeholder="Título del evento" required aria-label="Título">
+   <input name="date" type="date" required aria-label="Fecha">
+   <input name="start" type="time" value="10:00" required aria-label="Inicio">
+   <input name="end" type="time" value="11:00" required aria-label="Fin">
+   <select name="tag" aria-label="Categoría"><option value="0">Diseño</option><option value="1">Trabajo</option><option value="2">Reunión</option><option value="3">Descanso</option></select>
+   <button class="btn">Guardar evento</button>
+  </form>
+  <div id="agenda" style="margin-top:14px"></div>
+  <footer class="footer">@acenar 2026</footer>
+ </main>
+ <aside class="panel" id="ai">
+  <h1>Asistente IA</h1>
+  <div class="stat">
+   <div class="card y"><div class="v" id="pct">0%</div><small>Tareas completadas</small><div class="bar"><i id="pbar" style="width:0"></i></div></div>
+   <div class="card"><div class="v" id="late">0</div><small>Vencidas</small><div class="mut" id="nextev" style="font-size:11px;margin-top:6px"></div></div>
+  </div>
+  <div class="chips" id="chips">
+   <button>Resumen de hoy</button><button>Tareas pendientes</button><button>¿Qué priorizo?</button><button>Mi progreso</button>
+  </div>
+  <div class="chat" id="chat"></div>
+  <form class="send" id="cf"><input name="q" autocomplete="off" placeholder="Ej: añade tarea comprar café mañana" aria-label="Mensaje"><button class="btn">Enviar</button></form>
+ </aside>
+</div>
+<nav class="tabs"><button data-v="side">Tareas</button><button data-v="main" class="on">Agenda</button><button data-v="ai">Asistente</button></nav>
+<script>
+const $=s=>document.querySelector(s),pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const TAGS=['Diseño','Trabajo','Reunión','Descanso'],TC=['var(--c1)','var(--c2)','var(--c3)','var(--c4)'];
+const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DIA=['Do','Lu','Ma','Mi','Ju','Vi','Sá'];
+const today=new Date();today.setHours(0,0,0,0);const T=iso(today);
+let sel=T,vy=today.getFullYear(),vm=today.getMonth(),uid=100;
+let S={ev:[
+ {id:1,date:T,start:'10:00',end:'11:30',title:'Revisión de producto',tag:0},
+ {id:2,date:T,start:'13:30',end:'14:30',title:'Reunión de equipo',tag:1},
+ {id:3,date:T,start:'17:30',end:'17:45',title:'Pausa de café',tag:3},
+ {id:4,date:iso(addD(today,1)),start:'18:30',end:'19:30',title:'Llamada con cliente',tag:2},
+ {id:5,date:iso(addD(today,3)),start:'09:00',end:'10:00',title:'Taller de diseño',tag:0}],
+ tk:[{id:1,title:'Enviar propuesta a Hallie',due:T,done:false},{id:2,title:'Preparar demo del viernes',due:iso(addD(today,2)),done:false},
+ {id:3,title:'Responder correos',due:iso(addD(today,-1)),done:false},{id:4,title:'Revisar presupuesto',due:iso(addD(today,-2)),done:true}]};
+try{const r=localStorage.getItem('workos');if(r)S=JSON.parse(r)}catch(e){}
+const save=()=>{try{localStorage.setItem('workos',JSON.stringify(S))}catch(e){}};
+const fmt=s=>{const d=new Date(s+'T00:00');return d.getDate()+' '+MES[d.getMonth()].slice(0,3)};
+const evOn=d=>S.ev.filter(e=>e.date===d).sort((a,b)=>a.start.localeCompare(b.start));
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function renderCal(){
+ $('#mlabel').textContent=MES[vm][0].toUpperCase()+MES[vm].slice(1)+' '+vy;
+ const first=new Date(vy,vm,1),off=(first.getDay()+6)%7;let h=['L','M','X','J','V','S','D'].map(x=>`<b>${x}</b>`).join('');
+ for(let i=0;i<42;i++){const d=addD(first,i-off),k=iso(d),o=d.getMonth()!==vm;
+  h+=`<button class="d${o?' o':''}${k===T?' t':''}${k===sel?' s':''}" data-d="${k}">${d.getDate()}${evOn(k).length?'<i></i>':''}</button>`}
+ $('#cal').innerHTML=h;
+}
+function renderAgenda(){
+ const sd=new Date(sel+'T00:00');$('#mt').innerHTML=MES[sd.getMonth()][0].toUpperCase()+MES[sd.getMonth()].slice(1)+' <span class="mut">'+sd.getFullYear()+'</span>';
+ let h='';
+ for(let i=0;i<5;i++){const d=addD(sd,i),k=iso(d),es=evOn(k);
+  h+=`<section class="big"><div><div class="n">${pad(d.getDate())}</div></div><div class="evs"><div class="row"><b style="font-size:14px">${['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][d.getDay()]}${k===T?' <span class="late">· hoy</span>':''}</b><button class="ico" data-add="${k}" aria-label="Añadir evento este día">+</button></div>`;
+  h+=es.length?es.map(e=>`<div class="ev" style="--tc:${TC[e.tag]}"><div class="h">${e.start}<small>${e.end}</small></div><div class="b"><small>${TAGS[e.tag]}</small><p>${esc(e.title)}</p></div><button data-del="${e.id}" aria-label="Eliminar evento">✕</button></div>`).join(''):'<div class="empty">Aún no hay reuniones este día.</div>';
+  h+='</div></section>'}
+ $('#agenda').innerHTML=h;
+}
+function renderSide(){
+ const es=evOn(sel);
+ $('#sev').innerHTML=es.length?es.map(e=>`<div class="item"><span style="width:8px;height:8px;border-radius:50%;background:${TC[e.tag]}"></span>${esc(e.title)}<span class="tm">${e.start}</span></div>`).join(''):'<div class="item mut" style="font-weight:400">Sin eventos</div>';
+ const tk=[...S.tk].sort((a,b)=>a.done-b.done||a.due.localeCompare(b.due));
+ $('#tasks').innerHTML=tk.map(t=>`<div class="item${t.done?' done':''}"><button class="chk${t.done?' on':''}" data-tk="${t.id}" aria-label="Completar">${t.done?'✓':''}</button><span class="tt">${esc(t.title)}</span><span class="tm${!t.done&&t.due<T?' late':''}">${fmt(t.due)}</span><button data-dt="${t.id}" class="mut" aria-label="Eliminar tarea">✕</button></div>`).join('');
+}
+function stats(){
+ const tot=S.tk.length,dn=S.tk.filter(t=>t.done).length,late=S.tk.filter(t=>!t.done&&t.due<T).length,p=tot?Math.round(dn/tot*100):0;
+ $('#pct').textContent=p+'%';$('#pbar').style.width=p+'%';$('#late').textContent=late;
+ const now=pad(new Date().getHours())+':'+pad(new Date().getMinutes());
+ const nx=S.ev.filter(e=>e.date+e.start>=T+now).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start))[0];
+ $('#nextev').textContent=nx?'Próximo: '+nx.start+' '+nx.title:'Sin eventos próximos';
+ return{tot,dn,late,p};
+}
+const all=()=>{renderCal();renderAgenda();renderSide();stats();save()};
+
+/* Asistente (reglas locales, sin conexión) */
+const say=(t,u)=>{const m=document.createElement('div');m.className='m '+(u?'u':'a');m.textContent=t;$('#chat').append(m);m.scrollIntoView({block:'end'})};
+const list=a=>a.map(t=>'• '+t.title+' ('+fmt(t.due)+')').join('\n');
+function ask(q){
+ const s=q.toLowerCase(),st=stats(),pend=S.tk.filter(t=>!t.done).sort((a,b)=>a.due.localeCompare(b.due));
+ const rel=/pasado mañana/.test(s)?2:/mañana/.test(s)?1:0;const due=iso(addD(today,rel));
+ const clean=x=>x.replace(/pasado mañana|mañana|hoy/g,'').replace(/\ba las \d{1,2}(:\d\d)?/,'').trim().replace(/^(que|de|:)\s*/,'');
+ let m;
+ if(m=s.match(/(?:añade|agrega|crea|nueva)\s+(?:una\s+)?tarea\s+(.+)/)){const title=clean(m[1]);if(title){const t=title[0].toUpperCase()+title.slice(1);S.tk.push({id:++uid,title:t,due,done:false});all();return'Listo: añadí la tarea "'+t+'" para el '+fmt(due)+'.'}}
+ if(m=s.match(/(?:añade|agrega|crea|nuevo)\s+(?:un\s+)?(?:evento|reuni[oó]n)\s+(.+?)(?:\s+a las (\d{1,2})(?::(\d\d))?)?$/)){const h=m[2]?pad(+m[2]):'10',mi=m[3]||'00',title=clean(m[1].replace(/\ba las.*/,''))||'Reunión';
+  S.ev.push({id:++uid,date:due,start:h+':'+mi,end:pad((+h+1)%24)+':'+mi,title:title[0].toUpperCase()+title.slice(1),tag:2});sel=due;vm=addD(today,rel).getMonth();all();return'Evento creado el '+fmt(due)+' a las '+h+':'+mi+'.'}
+ if(/resumen|hoy|agenda/.test(s)){const es=evOn(T),tt=pend.filter(t=>t.due<=T);return'Hoy tienes '+es.length+' evento(s)'+(es.length?':\n'+es.map(e=>'• '+e.start+' '+e.title).join('\n'):'')+'\n\nTareas para hoy o vencidas: '+tt.length+(tt.length?'\n'+list(tt):'')}
+ if(/pendiente|tareas/.test(s))return pend.length?'Tienes '+pend.length+' tarea(s) pendiente(s):\n'+list(pend)+(st.late?'\n\n⚠ '+st.late+' vencida(s).':''):'No tienes tareas pendientes. 🎉';
+ if(/priori|primero|qu[eé] hago/.test(s)){const l=pend.filter(t=>t.due<T);const f=l[0]||pend[0];if(!f)return'Todo al día. Aprovecha para planificar la semana.';return(l.length?'Empieza por lo vencido: ':'Lo más próximo es ')+'"'+f.title+'" ('+fmt(f.due)+').'+(pend[1]&&pend[1]!==f?'\nDespués: "'+pend[1].title+'".':'')+'\nDesbloquea una hora en tu agenda para cerrarla hoy.'}
+ if(/progreso|avance|c[oó]mo voy/.test(s))return'Llevas '+st.dn+' de '+st.tot+' tareas ('+st.p+'%). '+(st.late?'Tienes '+st.late+' vencida(s): conviene replanificarlas o cerrarlas.':'Ninguna vencida, buen ritmo.');
+ return'Puedo resumir tu día, listar pendientes, sugerir prioridades y crear tareas o eventos. Prueba: "añade tarea llamar a Paula mañana" o "añade reunión demo mañana a las 15:00".';
+}
+$('#cf').onsubmit=e=>{e.preventDefault();const q=e.target.q.value.trim();if(!q)return;e.target.reset();say(q,1);setTimeout(()=>say(ask(q)),250)};
+$('#chips').onclick=e=>{const b=e.target.closest('button');if(b){say(b.textContent,1);setTimeout(()=>say(ask(b.textContent)),250)}};
+
+/* Eventos de UI */
+$('#cal').onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;sel=b.dataset.d;const d=new Date(sel+'T00:00');vm=d.getMonth();vy=d.getFullYear();all()};
+$('#prev').onclick=()=>{vm--;if(vm<0){vm=11;vy--}renderCal()};
+$('#next').onclick=()=>{vm++;if(vm>11){vm=0;vy++}renderCal()};
+$('#newev').onclick=()=>{const f=$('#ef');f.classList.toggle('open');f.date.value=sel;f.title.focus()};
+$('#ef').onsubmit=e=>{e.preventDefault();const f=e.target;if(f.end.value<=f.start.value){f.end.setCustomValidity('');alert('La hora de fin debe ser posterior al inicio.');return}
+ S.ev.push({id:++uid,date:f.date.value,start:f.start.value,end:f.end.value,title:f.title.value.trim(),tag:+f.tag.value});sel=f.date.value;f.reset();f.classList.remove('open');all()};
+$('#agenda').onclick=e=>{const a=e.target.closest('[data-add]'),d=e.target.closest('[data-del]');
+ if(a){const f=$('#ef');f.classList.add('open');f.date.value=a.dataset.add;f.title.focus();scrollTo(0,0);$('#main').scrollTop=0}
+ if(d){S.ev=S.ev.filter(x=>x.id!=d.dataset.del);all()}};
+$('#tasks').onclick=e=>{const c=e.target.closest('[data-tk]'),d=e.target.closest('[data-dt]');
+ if(c){const t=S.tk.find(x=>x.id==c.dataset.tk);t.done=!t.done;all();if(t.done)say('Marcada como hecha: "'+t.title+'". Llevas '+stats().p+'%.')}
+ if(d){S.tk=S.tk.filter(x=>x.id!=d.dataset.dt);all()}};
+$('#tf').onsubmit=e=>{e.preventDefault();const f=e.target;S.tk.push({id:++uid,title:f.t.value.trim(),due:f.d.value||sel,done:false});f.reset();all()};
+document.querySelector('nav.tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;document.body.dataset.v=b.dataset.v;document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.toggle('on',x===b))};
+
+all();
+{const st=stats();say('Hola 👋 Hoy tienes '+evOn(T).length+' evento(s) y '+S.tk.filter(t=>!t.done).length+' tarea(s) pendiente(s)'+(st.late?', '+st.late+' vencida(s)':'')+'. ¿Qué quieres revisar?')}
+</script>
+</body>
+</html>
